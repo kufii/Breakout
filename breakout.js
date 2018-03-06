@@ -1,17 +1,17 @@
-(function() {
+(() => {
 	'use strict';
 
-	var canvas;
-	var ctx;
+	let canvas;
+	let ctx;
 
-	var playing = false;
+	let playing = false;
 
-	var interval;
-	var prevTime;
-	var delta;
+	let interval;
+	let prevTime;
+	let delta;
 
 	// Objects
-	var ball = {
+	let ball = {
 		x: 0,
 		Y: 0,
 		dx: 0,
@@ -20,26 +20,27 @@
 		color: 'white',
 		outline: 'black',
 		outlineWidth: 1,
-		draw: function() {
+		draw() {
 			circle(this.x, this.y, this.radius, this.color, this.outline, this.outlineWidth);
 		}
 	};
 
-	var paddle = {
+	let paddle = {
 		x: 0,
 		y: 0,
 		width: 72,
 		height: 15,
 		speed: 0.7,
+		reboundModifier: 1.65,
 		color: 'white',
 		outline: 'black',
 		outlineWidth: 1,
-		draw: function() {
+		draw() {
 			rect(this.x, this.y, this.width, this.height, this.color, this.outline, this.outlineWidth);
 		}
 	};
 
-	var board = {
+	let board = {
 		bricks: [],
 		numCols: 7,
 		numRows: 9,
@@ -48,9 +49,9 @@
 		color: 'yellow',
 		outline: 'black',
 		outlineWidth: 1,
-		draw: function() {
-			for (var y = 0; y < this.numRows; y++) {
-				for (var x = 0; x < this.numCols; x++) {
+		draw() {
+			for (let y = 0; y < this.numRows; y++) {
+				for (let x = 0; x < this.numCols; x++) {
 					if (this.bricks[y][x]) {
 						rect(x * this.brickWidth, y * this.brickHeight, this.brickWidth, this.brickHeight, this.color, this.outline, this.outlineWidth);
 					}
@@ -60,21 +61,19 @@
 	};
 
 	// Game loop
-	var loadGame = function() {
+	const loadGame = function() {
 		canvas = document.querySelector('#game');
 		ctx = canvas.getContext('2d');
 		canvas.onmousemove = mouseMove;
-		canvas.onmousedown = function() {
-			playing = true;
-		};
+		canvas.onmousedown = () => playing = true;
 		init();
 	};
 
-	var init = function() {
+	const init = function() {
 		board.bricks = [];
-		for (var y = 0; y < board.numRows; y++) {
+		for (let y = 0; y < board.numRows; y++) {
 			board.bricks.push([]);
-			for (var x = 0; x < board.numCols; x++) {
+			for (let x = 0; x < board.numCols; x++) {
 				board.bricks[y].push(Math.random() > 0.5);
 			}
 		}
@@ -86,8 +85,8 @@
 		ball.dx = Math.random() - 0.5; // random number between -0.5 and 0.5
 		ball.dy = -0.3;
 
-		var FPS = 60;
-		setInterval(function() {
+		let FPS = 60;
+		setInterval(() => {
 			if (!prevTime) {
 				delta = 0;
 			} else {
@@ -106,7 +105,7 @@
 		draw();
 	};
 
-	var update = function() {
+	const update = function() {
 		if (playing) {
 			if (keydown.ArrowLeft) {
 				paddle.x -= paddle.speed * delta;
@@ -114,10 +113,8 @@
 			if (keydown.ArrowRight) {
 				paddle.x += paddle.speed * delta;
 			}
-			if (paddle.x < 0)
-				paddle.x = 0;
-			if (paddle.x + paddle.width > canvas.width)
-				paddle.x = canvas.width - paddle.width;
+			if (paddle.x < 0) paddle.x = 0;
+			if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
 
 			ball.x += ball.dx * delta;
 			ball.y += ball.dy * delta;
@@ -136,9 +133,9 @@
 			}
 
 			// if the ball was previously above the paddle (although, give a bit of leeway)
-			if (ball.dy > 0 && ball.y - ball.dy * delta < paddle.y + paddle.height / 2 && ballIntersects(paddle.x, paddle.y, paddle.width, paddle.height)) {
+			if (ball.dy > 0 && ball.y - (ball.dy * delta) < paddle.y + (paddle.height / 2) && ballIntersects(paddle.x, paddle.y, paddle.width, paddle.height)) {
 				ball.y = paddle.y - ball.radius;
-				ball.dx = 1.65 * ((ball.x - (paddle.x + paddle.width / 2)) / paddle.width);
+				ball.dx = paddle.reboundModifier * ((ball.x - (paddle.x + (paddle.width / 2))) / paddle.width);
 				ball.dy *= -1;
 			}
 
@@ -149,38 +146,36 @@
 			}
 
 			// hit board
-			var xReversed = false;
-			var yReversed = false;
-			for (var y = 0; y < board.numRows; y++) {
-				for (var x = 0; x < board.numCols; x++) {
+			let xReversed = false;
+			let yReversed = false;
+			for (let y = 0; y < board.numRows; y++) {
+				for (let x = 0; x < board.numCols; x++) {
 					if (!board.bricks[y][x]) {
 						continue;
 					}
 					if (ballIntersects(x * board.brickWidth, y * board.brickHeight, board.brickWidth, board.brickHeight)) {
 						if (ball.dy > 0) {
-							if (ball.y > y * board.brickHeight && ((ball.x < x * board.brickWidth) || (ball.x > x * board.brickWidth + board.brickWidth))) {
+							if (ball.y > y * board.brickHeight && (ball.x < x * board.brickWidth || ball.x > (x * board.brickWidth) + board.brickWidth)) {
 								if (ball.x < x * board.brickWidth) {
-									ball.x = x * board.brickWidth - ball.radius;
+									ball.x = (x * board.brickWidth) - ball.radius;
 								} else {
-									ball.x = x * board.brickWidth + board.brickWidth + ball.radius;
+									ball.x = (x * board.brickWidth) + board.brickWidth + ball.radius;
 								}
 								xReversed = true;
 							} else {
-								ball.y = y * board.brickHeight - ball.radius;
+								ball.y = (y * board.brickHeight) - ball.radius;
 								yReversed = true;
 							}
+						} else if (ball.y < (y * board.brickHeight) + board.brickHeight && (ball.x < x * board.brickWidth || ball.x > (x * board.brickWidth) + board.brickWidth)) {
+							if (ball.x < x * board.brickWidth) {
+								ball.x = (x * board.brickWidth) - ball.radius;
+							} else {
+								ball.x = (x * board.brickWidth) + board.brickWidth + ball.radius;
+							}
+							xReversed = true;
 						} else {
-							if (ball.y < y * board.brickHeight + board.brickHeight && ((ball.x < x * board.brickWidth) || (ball.x > x * board.brickWidth + board.brickWidth))) {
-								if (ball.x < x * board.brickWidth) {
-									ball.x = x * board.brickWidth - ball.radius;
-								} else {
-									ball.x = x * board.brickWidth + board.brickWidth + ball.radius;
-								}
-								xReversed = true;
-							} else {
-								ball.y = y * board.brickHeight + board.brickHeight + ball.radius;
-								yReversed = true;
-							}
+							ball.y = (y * board.brickHeight) + board.brickHeight + ball.radius;
+							yReversed = true;
 						}
 						board.bricks[y][x] = false;
 					}
@@ -195,7 +190,7 @@
 		}
 	};
 
-	var draw = function() {
+	const draw = function() {
 		clear();
 
 		board.draw();
@@ -204,11 +199,11 @@
 	};
 
 	// draw functions
-	var clear = function() {
+	const clear = function() {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 	};
 
-	var rect = function(x, y, width, height, fill, outline, outlineWidth) {
+	const rect = function(x, y, width, height, fill, outline, outlineWidth) {
 		ctx.beginPath();
 		ctx.rect(x, y, width, height);
 		ctx.fillStyle = fill;
@@ -218,7 +213,7 @@
 		ctx.stroke();
 	};
 
-	var circle = function(x, y, radius, fill, outline, outlineWidth) {
+	const circle = function(x, y, radius, fill, outline, outlineWidth) {
 		ctx.beginPath();
 		ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
 		ctx.fillStyle = fill;
@@ -229,40 +224,34 @@
 	};
 
 	// other functions
-	var mouseMove = function(ev) {
+	const mouseMove = function(ev) {
 		if (playing) {
-			var rect = canvas.getBoundingClientRect();
+			let rect = canvas.getBoundingClientRect();
 			paddle.x = ev.clientX - rect.left - (paddle.width / 2);
 		}
 	};
 
-	var ballIntersects = function(x, y, width, height) {
+	const ballIntersects = function(x, y, width, height) {
 		// Closest point in the rectangle to the center of circle
-		var closestX, closestY;
+		let closestX, closestY;
 		// Find the closest x point from center of circle
-		if (ball.x < x)
-			closestX = x;
-		else if (ball.x > x + width)
-			closestX = x + width;
-		else
-			closestX = ball.x;
+		if (ball.x < x) closestX = x;
+		else if (ball.x > x + width) closestX = x + width;
+		else closestX = ball.x;
 
 		// Find the unrotated closest y point from center of unrotated circle
-		if (ball.y < y)
-			closestY = y;
-		else if (ball.y > y + height)
-			closestY = y + height;
-		else
-			closestY = ball.y;
+		if (ball.y < y) closestY = y;
+		else if (ball.y > y + height) closestY = y + height;
+		else closestY = ball.y;
 
 		// Determine collision
-		var distance = findDistance(ball.x, ball.y, closestX, closestY);
+		let distance = findDistance(ball.x, ball.y, closestX, closestY);
 		return distance < ball.radius;
 	};
 
-	var findDistance = function(fromX, fromY, toX, toY) {
-		var a = Math.abs(fromX - toX);
-		var b = Math.abs(fromY - toY);
+	const findDistance = function(fromX, fromY, toX, toY) {
+		let a = Math.abs(fromX - toX);
+		let b = Math.abs(fromY - toY);
 
 		return Math.sqrt((a * a) + (b * b));
 	};
