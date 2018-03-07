@@ -170,9 +170,9 @@
 			}
 
 			// if the ball was previously above the paddle (although, give a bit of leeway)
-			if (this.dy > 0 && this.y - (this.dy * delta) < game.paddle.y + (game.paddle.height / 2) && this.intersects(game.paddle)) {
+			if (this.dy > 0 && this.y - (this.dy * delta) < game.paddle.origin.y && this.intersects(game.paddle)) {
 				this.y = game.paddle.y - this.radius;
-				this.dx = this.reboundModifier * ((this.x - (game.paddle.x + (game.paddle.width / 2))) / game.paddle.width);
+				this.dx = this.reboundModifier * ((this.x - game.paddle.origin.x) / game.paddle.width);
 				this.dy *= -1;
 			}
 
