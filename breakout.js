@@ -54,7 +54,6 @@
 			};
 			this.canvas.onmousedown = () => this.isPlaying = true;
 
-			let prevPlaying = false;
 			let prevTime;
 			let frame = () => {
 				requestAnimationFrame(frame);
@@ -68,16 +67,11 @@
 				if (keydown.Enter) this.isPlaying = true;
 
 				if (this.isPlaying) {
-					if (!prevPlaying) this.newGame();
 					this.update(delta);
 				}
 				this.draw();
-
-				prevPlaying = this.isPlaying;
 			};
 			frame();
-
-			this.draw();
 		}
 
 		newGame() {
@@ -122,6 +116,7 @@
 
 		lose() {
 			this.isPlaying = false;
+			this.newGame();
 		}
 	}
 
