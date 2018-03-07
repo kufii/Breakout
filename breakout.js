@@ -182,26 +182,26 @@
 			game.bricks.filter(brick => !brick.isHit).forEach(brick => {
 				if (this.intersects(brick)) {
 					if (this.dy > 0) {
-						if (this.y > brick.y && (this.x < brick.x || this.x > (brick.x) + brick.width)) {
+						if (this.y > brick.y && (this.x < brick.x || this.x > brick.x + brick.width)) {
 							if (this.x < brick.x) {
-								this.x = (brick.x) - this.radius;
+								this.x = brick.x - this.radius;
 							} else {
-								this.x = (brick.x) + brick.width + this.radius;
+								this.x = brick.x + brick.width + this.radius;
 							}
 							xReversed = true;
 						} else {
-							this.y = (brick.y) - this.radius;
+							this.y = brick.y - this.radius;
 							yReversed = true;
 						}
-					} else if (this.y < (brick.y) + brick.height && (this.x < brick.x || this.x > (brick.x) + brick.width)) {
+					} else if (this.y < brick.y + brick.height && (this.x < brick.x || this.x > brick.x + brick.width)) {
 						if (this.x < brick.x) {
-							this.x = (brick.x) - this.radius;
+							this.x = brick.x - this.radius;
 						} else {
-							this.x = (brick.x) + brick.width + this.radius;
+							this.x = brick.x + brick.width + this.radius;
 						}
 						xReversed = true;
 					} else {
-						this.y = (brick.y) + brick.height + this.radius;
+						this.y = brick.y + brick.height + this.radius;
 						yReversed = true;
 					}
 					brick.hit();
