@@ -37,7 +37,6 @@
 			this.ctx = canvas.getContext('2d');
 			this.rows = 7;
 			this.cols = 9;
-			this.brickWidth = 72;
 			this.brickHeight = 20;
 			this.paddle = new Paddle();
 			this.ball = new Ball();
@@ -93,14 +92,16 @@
 
 		generateBricks() {
 			this.bricks = [];
-			for (let y = 0; y < this.rows; y++) {
-				for (let x = 0; x < this.cols; x++) {
+			let brickWidth = this.canvas.width / this.rows;
+			let brickHeight = this.brickHeight;
+			for (let x = 0; x < this.rows; x++) {
+				for (let y = 0; y < this.cols; y++) {
 					if (Math.random() > 0.5) {
 						this.bricks.push(new Brick({
-							x: x * this.brickWidth,
-							y: y * this.brickHeight,
-							width: this.brickWidth,
-							height: this.brickHeight
+							x: x * brickWidth,
+							y: y * brickHeight,
+							width: brickWidth,
+							height: brickHeight
 						}));
 					}
 				}
