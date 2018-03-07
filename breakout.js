@@ -1,260 +1,292 @@
 (() => {
 	'use strict';
 
-	let canvas;
-	let ctx;
+	const Util = {
+		findDistance(fromX, fromY, toX, toY) {
+			let a = Math.abs(fromX - toX);
+			let b = Math.abs(fromY - toY);
 
-	let playing = false;
-
-	let interval;
-	let prevTime;
-	let delta;
-
-	// Objects
-	let ball = {
-		x: 0,
-		Y: 0,
-		dx: 0,
-		dy: 0,
-		radius: 6,
-		color: 'white',
-		outline: 'black',
-		outlineWidth: 1,
-		draw() {
-			circle(this.x, this.y, this.radius, this.color, this.outline, this.outlineWidth);
+			return Math.sqrt((a * a) + (b * b));
 		}
 	};
 
-	let paddle = {
-		x: 0,
-		y: 0,
-		width: 72,
-		height: 15,
-		speed: 0.7,
-		reboundModifier: 1.65,
-		color: 'white',
-		outline: 'black',
-		outlineWidth: 1,
-		draw() {
-			rect(this.x, this.y, this.width, this.height, this.color, this.outline, this.outlineWidth);
+	const Draw = {
+		rect(ctx, x, y, width, height, fill, outline, outlineWidth) {
+			ctx.beginPath();
+			ctx.rect(x, y, width, height);
+			ctx.fillStyle = fill;
+			ctx.fill();
+			ctx.lineWidth = outlineWidth;
+			ctx.strokeStyle = outline;
+			ctx.stroke();
+		},
+		circle(ctx, x, y, radius, fill, outline, outlineWidth) {
+			ctx.beginPath();
+			ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+			ctx.fillStyle = fill;
+			ctx.fill();
+			ctx.lineWidth = outlineWidth;
+			ctx.strokeStyle = outline;
+			ctx.stroke();
 		}
 	};
 
-	let board = {
-		bricks: [],
-		numCols: 7,
-		numRows: 9,
-		brickHeight: 20,
-		brickWidth: 72,
-		color: 'yellow',
-		outline: 'black',
-		outlineWidth: 1,
-		draw() {
-			for (let y = 0; y < this.numRows; y++) {
-				for (let x = 0; x < this.numCols; x++) {
-					if (this.bricks[y][x]) {
-						rect(x * this.brickWidth, y * this.brickHeight, this.brickWidth, this.brickHeight, this.color, this.outline, this.outlineWidth);
+	class Game {
+		constructor(canvas) {
+			this.canvas = canvas;
+			this.ctx = canvas.getContext('2d');
+			this.rows = 7;
+			this.cols = 9;
+			this.brickWidth = 72;
+			this.brickHeight = 20;
+			this.paddle = new Paddle();
+			this.ball = new Ball();
+			this.bricks = [];
+			this.isPlaying = false;
+			this.newGame();
+		}
+
+		init() {
+			this.canvas.onmousemove = e => {
+				if (this.isPlaying) {
+					const rect = this.canvas.getBoundingClientRect();
+					this.paddle.x = e.clientX - rect.left - (this.paddle.width / 2);
+				}
+			};
+			this.canvas.onmousedown = () => this.isPlaying = true;
+
+			let prevPlaying = false;
+			let prevTime;
+			let frame = () => {
+				requestAnimationFrame(frame);
+
+				let delta = 0;
+				if (prevTime) {
+					delta = Date.now() - prevTime;
+				}
+				prevTime = Date.now();
+
+				if (keydown.Enter) this.isPlaying = true;
+
+				if (this.isPlaying) {
+					if (!prevPlaying) this.newGame();
+					this.update(delta);
+				}
+				this.draw();
+
+				prevPlaying = this.isPlaying;
+			};
+			frame();
+
+			this.draw();
+		}
+
+		newGame() {
+			this.generateBricks();
+			this.paddle.y = this.canvas.height - this.paddle.height - 10;
+			this.paddle.x = (this.canvas.width / 2) - (this.paddle.width / 2);
+			this.ball.x = this.canvas.width / 2;
+			this.ball.y = this.paddle.y - this.ball.radius - 5;
+			this.ball.dx = Math.random() - 0.5; // random number between -0.5 and 0.5
+			this.ball.dy = -this.ball.speed;
+		}
+
+		generateBricks() {
+			this.bricks = [];
+			for (let y = 0; y < this.rows; y++) {
+				for (let x = 0; x < this.cols; x++) {
+					if (Math.random() > 0.5) {
+						this.bricks.push(new Brick({
+							x: x * this.brickWidth,
+							y: y * this.brickHeight,
+							width: this.brickWidth,
+							height: this.brickHeight
+						}));
 					}
 				}
 			}
 		}
-	};
 
-	// Game loop
-	const loadGame = function() {
-		canvas = document.querySelector('#game');
-		ctx = canvas.getContext('2d');
-		canvas.onmousemove = mouseMove;
-		canvas.onmousedown = () => playing = true;
-		init();
-	};
-
-	const init = function() {
-		board.bricks = [];
-		for (let y = 0; y < board.numRows; y++) {
-			board.bricks.push([]);
-			for (let x = 0; x < board.numCols; x++) {
-				board.bricks[y].push(Math.random() > 0.5);
-			}
+		update(delta) {
+			this.paddle.update(delta);
+			this.ball.update(delta);
 		}
 
-		paddle.y = canvas.height - paddle.height - 10;
-		paddle.x = (canvas.width / 2) - (paddle.width / 2);
-		ball.x = canvas.width / 2;
-		ball.y = paddle.y - ball.radius - 5;
-		ball.dx = Math.random() - 0.5; // random number between -0.5 and 0.5
-		ball.dy = -0.3;
+		draw() {
+			this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			this.bricks.forEach(brick => brick.draw(this.ctx));
+			this.ball.draw(this.ctx);
+			this.paddle.draw(this.ctx);
+		}
 
-		let FPS = 60;
-		setInterval(() => {
-			if (!prevTime) {
-				delta = 0;
-			} else {
-				delta = new Date() - prevTime;
-			}
-			prevTime = new Date();
+		lose() {
+			this.isPlaying = false;
+		}
+	}
 
-			if (playing) {
-				update();
-				draw();
-			} else if (keydown.Enter) {
-				playing = true;
-			}
-		}, 1000 / FPS);
+	class Ball {
+		constructor({ radius=6, color='white', outline='black', outlineWidth=1, speed=0.3, reboundModifier=1.65 } = {}) {
+			this.x = 0;
+			this.y = 0;
+			this.dx = 0;
+			this.dy = 0;
+			this.radius = radius;
+			this.color = color;
+			this.outline = outline;
+			this.outlineWidth = outlineWidth;
+			this.speed = speed;
+			this.reboundModifier = reboundModifier;
+		}
 
-		draw();
-	};
+		intersects({ x, y, width, height }) {
+			// Closest point in the rectangle to the center of circle
+			let closestX, closestY;
+			// Find the closest x point from center of circle
+			if (this.x < x) closestX = x;
+			else if (this.x > x + width) closestX = x + width;
+			else closestX = this.x;
 
-	const update = function() {
-		if (playing) {
-			if (keydown.ArrowLeft) {
-				paddle.x -= paddle.speed * delta;
-			}
-			if (keydown.ArrowRight) {
-				paddle.x += paddle.speed * delta;
-			}
-			if (paddle.x < 0) paddle.x = 0;
-			if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
+			// Find the unrotated closest y point from center of unrotated circle
+			if (this.y < y) closestY = y;
+			else if (this.y > y + height) closestY = y + height;
+			else closestY = this.y;
 
-			ball.x += ball.dx * delta;
-			ball.y += ball.dy * delta;
+			// Determine collision
+			let distance = Util.findDistance(this.x, this.y, closestX, closestY);
+			return distance < this.radius;
+		}
 
-			if (ball.x - ball.radius < 0) {
-				ball.dx *= -1;
-				ball.x = ball.radius;
+		update(delta) {
+			this.x += this.dx * delta;
+			this.y += this.dy * delta;
+
+			if (this.x - this.radius < 0) {
+				this.dx *= -1;
+				this.x = this.radius;
 			}
-			if (ball.x > canvas.width - ball.radius) {
-				ball.dx *= -1;
-				ball.x = canvas.width - ball.radius;
+			if (this.x > game.canvas.width - this.radius) {
+				this.dx *= -1;
+				this.x = game.canvas.width - this.radius;
 			}
-			if (ball.y - ball.radius < 0) {
-				ball.dy *= -1;
-				ball.y = ball.radius;
+			if (this.y - this.radius < 0) {
+				this.dy *= -1;
+				this.y = this.radius;
 			}
 
 			// if the ball was previously above the paddle (although, give a bit of leeway)
-			if (ball.dy > 0 && ball.y - (ball.dy * delta) < paddle.y + (paddle.height / 2) && ballIntersects(paddle.x, paddle.y, paddle.width, paddle.height)) {
-				ball.y = paddle.y - ball.radius;
-				ball.dx = paddle.reboundModifier * ((ball.x - (paddle.x + (paddle.width / 2))) / paddle.width);
-				ball.dy *= -1;
+			if (this.dy > 0 && this.y - (this.dy * delta) < game.paddle.y + (game.paddle.height / 2) && this.intersects(game.paddle)) {
+				this.y = game.paddle.y - this.radius;
+				this.dx = this.reboundModifier * ((this.x - (game.paddle.x + (game.paddle.width / 2))) / game.paddle.width);
+				this.dy *= -1;
 			}
 
-			if (ball.y - ball.radius > canvas.height) {
-				playing = false;
-				clearInterval(interval);
-				init();
-			}
-
-			// hit board
+			// hit bricks
 			let xReversed = false;
 			let yReversed = false;
-			for (let y = 0; y < board.numRows; y++) {
-				for (let x = 0; x < board.numCols; x++) {
-					if (!board.bricks[y][x]) {
-						continue;
-					}
-					if (ballIntersects(x * board.brickWidth, y * board.brickHeight, board.brickWidth, board.brickHeight)) {
-						if (ball.dy > 0) {
-							if (ball.y > y * board.brickHeight && (ball.x < x * board.brickWidth || ball.x > (x * board.brickWidth) + board.brickWidth)) {
-								if (ball.x < x * board.brickWidth) {
-									ball.x = (x * board.brickWidth) - ball.radius;
-								} else {
-									ball.x = (x * board.brickWidth) + board.brickWidth + ball.radius;
-								}
-								xReversed = true;
+			game.bricks.filter(brick => !brick.isHit).forEach(brick => {
+				if (this.intersects(brick)) {
+					if (this.dy > 0) {
+						if (this.y > brick.y && (this.x < brick.x || this.x > (brick.x) + brick.width)) {
+							if (this.x < brick.x) {
+								this.x = (brick.x) - this.radius;
 							} else {
-								ball.y = (y * board.brickHeight) - ball.radius;
-								yReversed = true;
-							}
-						} else if (ball.y < (y * board.brickHeight) + board.brickHeight && (ball.x < x * board.brickWidth || ball.x > (x * board.brickWidth) + board.brickWidth)) {
-							if (ball.x < x * board.brickWidth) {
-								ball.x = (x * board.brickWidth) - ball.radius;
-							} else {
-								ball.x = (x * board.brickWidth) + board.brickWidth + ball.radius;
+								this.x = (brick.x) + brick.width + this.radius;
 							}
 							xReversed = true;
 						} else {
-							ball.y = (y * board.brickHeight) + board.brickHeight + ball.radius;
+							this.y = (brick.y) - this.radius;
 							yReversed = true;
 						}
-						board.bricks[y][x] = false;
+					} else if (this.y < (brick.y) + brick.height && (this.x < brick.x || this.x > (brick.x) + brick.width)) {
+						if (this.x < brick.x) {
+							this.x = (brick.x) - this.radius;
+						} else {
+							this.x = (brick.x) + brick.width + this.radius;
+						}
+						xReversed = true;
+					} else {
+						this.y = (brick.y) + brick.height + this.radius;
+						yReversed = true;
 					}
+					brick.hit();
 				}
-			}
+			});
+
 			if (xReversed) {
-				ball.dx *= -1;
+				this.dx *= -1;
 			}
 			if (yReversed) {
-				ball.dy *= -1;
+				this.dy *= -1;
+			}
+
+			if (this.y - this.radius > game.canvas.height) {
+				game.lose();
 			}
 		}
-	};
 
-	const draw = function() {
-		clear();
-
-		board.draw();
-		ball.draw();
-		paddle.draw();
-	};
-
-	// draw functions
-	const clear = function() {
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-	};
-
-	const rect = function(x, y, width, height, fill, outline, outlineWidth) {
-		ctx.beginPath();
-		ctx.rect(x, y, width, height);
-		ctx.fillStyle = fill;
-		ctx.fill();
-		ctx.lineWidth = outlineWidth;
-		ctx.strokeStyle = outline;
-		ctx.stroke();
-	};
-
-	const circle = function(x, y, radius, fill, outline, outlineWidth) {
-		ctx.beginPath();
-		ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
-		ctx.fillStyle = fill;
-		ctx.fill();
-		ctx.lineWidth = outlineWidth;
-		ctx.strokeStyle = outline;
-		ctx.stroke();
-	};
-
-	// other functions
-	const mouseMove = function(ev) {
-		if (playing) {
-			let rect = canvas.getBoundingClientRect();
-			paddle.x = ev.clientX - rect.left - (paddle.width / 2);
+		draw(ctx) {
+			Draw.circle(ctx, this.x, this.y, this.radius, this.color, this.outline, this.outlineWidth);
 		}
-	};
+	}
 
-	const ballIntersects = function(x, y, width, height) {
-		// Closest point in the rectangle to the center of circle
-		let closestX, closestY;
-		// Find the closest x point from center of circle
-		if (ball.x < x) closestX = x;
-		else if (ball.x > x + width) closestX = x + width;
-		else closestX = ball.x;
+	class Rectangle {
+		constructor(x, y, width, height, color, outline, outlineWidth) {
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
+			this.color = color;
+			this.outline = outline;
+			this.outlineWidth = outlineWidth;
+		}
 
-		// Find the unrotated closest y point from center of unrotated circle
-		if (ball.y < y) closestY = y;
-		else if (ball.y > y + height) closestY = y + height;
-		else closestY = ball.y;
+		get origin() {
+			return {
+				x: this.x + (this.width / 2),
+				y: this.y + (this.height / 2)
+			};
+		}
 
-		// Determine collision
-		let distance = findDistance(ball.x, ball.y, closestX, closestY);
-		return distance < ball.radius;
-	};
+		draw(ctx) {
+			Draw.rect(ctx, this.x, this.y, this.width, this.height, this.color, this.outline, this.outlineWidth);
+		}
+	}
 
-	const findDistance = function(fromX, fromY, toX, toY) {
-		let a = Math.abs(fromX - toX);
-		let b = Math.abs(fromY - toY);
+	class Paddle extends Rectangle {
+		constructor({ width=72, height=15, speed=0.7, color='white', outline='black', outlineWidth=1 } = {}) {
+			super(0, 0, width, height, color, outline, outlineWidth);
+			this.speed = speed;
+		}
 
-		return Math.sqrt((a * a) + (b * b));
-	};
+		update(delta) {
+			if (keydown.ArrowLeft) {
+				this.x -= this.speed * delta;
+			}
+			if (keydown.ArrowRight) {
+				this.x += this.speed * delta;
+			}
+			if (this.x < 0) this.x = 0;
+			if (this.x + this.width > game.canvas.width) this.x = game.canvas.width - this.width;
+		}
+	}
 
-	loadGame();
+	class Brick extends Rectangle {
+		constructor({ x, y, width, height, color='yellow', outline='black', outlineWidth=1 } = {}) {
+			super(x, y, width, height, color, outline, outlineWidth);
+			this.isHit = false;
+		}
+
+		hit() {
+			this.isHit = true;
+		}
+
+		draw(ctx) {
+			if (!this.isHit) {
+				super.draw(ctx);
+			}
+		}
+	}
+
+	let game = new Game(document.querySelector('#game'));
+	game.init();
 })();
