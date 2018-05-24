@@ -3,8 +3,8 @@
 
 	const Util = {
 		findDistance(fromX, fromY, toX, toY) {
-			let a = Math.abs(fromX - toX);
-			let b = Math.abs(fromY - toY);
+			const a = Math.abs(fromX - toX);
+			const b = Math.abs(fromY - toY);
 
 			return Math.sqrt((a * a) + (b * b));
 		}
@@ -55,7 +55,7 @@
 			this.canvas.onmousedown = () => this.isPlaying = true;
 
 			let prevTime;
-			let frame = () => {
+			const frame = () => {
 				requestAnimationFrame(frame);
 
 				let delta = 0;
@@ -86,8 +86,8 @@
 
 		generateBricks() {
 			this.bricks = [];
-			let brickWidth = this.canvas.width / this.rows;
-			let brickHeight = this.brickHeight;
+			const brickWidth = this.canvas.width / this.rows;
+			const brickHeight = this.brickHeight;
 			for (let x = 0; x < this.rows; x++) {
 				for (let y = 0; y < this.cols; y++) {
 					if (Math.random() > 0.5) {
@@ -148,7 +148,7 @@
 			else closestY = this.y;
 
 			// Determine collision
-			let distance = Util.findDistance(this.x, this.y, closestX, closestY);
+			const distance = Util.findDistance(this.x, this.y, closestX, closestY);
 			return distance < this.radius;
 		}
 
@@ -283,6 +283,6 @@
 		}
 	}
 
-	let game = new Game(document.querySelector('#game'));
+	const game = new Game(document.querySelector('#game'));
 	game.init();
 })();
